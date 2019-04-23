@@ -20,9 +20,9 @@ namespace BugsnagUnity
 
     public Metadata Metadata { get; }
 
-    UniqueLogThrottle UniqueCounter { get; }
+    internal UniqueLogThrottle UniqueCounter { get; }
 
-    MaximumLogTypeCounter LogTypeCounter { get; }
+    internal MaximumLogTypeCounter LogTypeCounter { get; }
 
     protected IDelivery Delivery => NativeClient.Delivery;
 
@@ -33,6 +33,8 @@ namespace BugsnagUnity
     internal INativeClient NativeClient { get; }
 
     Stopwatch Stopwatch { get; }
+
+    private UnityLogInterceptor Interceptor;
 
     bool InForeground => Stopwatch.IsRunning;
 
@@ -53,7 +55,10 @@ namespace BugsnagUnity
       NativeClient.PopulateUser(User);
 
       SceneManager.sceneLoaded += SceneLoaded;
-      Application.logMessageReceivedThreaded += Notify;
+      Interceptor = new UnityLogInterceptor(this);
+      Application.logMessageReceived += Notify;
+      //Interceptor.Install();
+      
       User.PropertyChanged += (obj, args) => { NativeClient.SetUser(User); };
     }
 
@@ -86,7 +91,7 @@ namespace BugsnagUnity
     {
       if (Configuration.AutoNotify && logType.IsGreaterThanOrEqualTo(Configuration.NotifyLevel))
       {
-        var logMessage = new UnityLogMessage(condition, stackTrace, logType);
+        var logMessage = new UnityLogMessage(condition, UnityEngine.StackTraceUtility.ExtractStackTrace(), logType);
 
         if (UniqueCounter.ShouldSend(logMessage))
         {
@@ -165,7 +170,7 @@ namespace BugsnagUnity
       Notify(new Exceptions(exception, substitute).ToArray(), handledState, callback, null);
     }
 
-    void Notify(Exception[] exceptions, HandledState handledState, Middleware callback, LogType? logType)
+    internal void Notify(Exception[] exceptions, HandledState handledState, Middleware callback, LogType? logType)
     {
       var user = new User { Id = User.Id, Email = User.Email, Name = User.Name };
       var app = new App(Configuration)
