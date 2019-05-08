@@ -41,6 +41,8 @@ namespace BugsnagUnity
 
     private Thread MainThread;
 
+    private static double AutoCaptureSessionThresholdSeconds = 30;
+
     private GameObject TimingTrackerObject { get; }
 
     public Client(INativeClient nativeClient)
@@ -265,14 +267,45 @@ namespace BugsnagUnity
       {
         Stopwatch.Start();
 
-        if (Configuration.AutoCaptureSessions)
-        {
+        AutoCaptureSessionIfNeeded();
+      }
+      else
+      {
+        Stopwatch.Stop();
+      }
+    }
+
+    /// <summary>
+    /// Check next frame if a new session should be captured
+    /// </summary>
+    private IEnumerator<UnityEngine.AsyncOperation> RunInitialSessionCheck()
+    {
+      yield return null;
+      AutoCaptureSessionIfNeeded();
+    }
+
+    /// <summary>
+    /// Capture a new session if AutoCaptureSessions is true and either:
+    /// * There is no current session
+    /// * It has been more than 30 seconds since the last session started
+    /// </summary>
+    private void AutoCaptureSessionIfNeeded()
+    {
+      if (!Configuration.AutoCaptureSessions)
+      {
+        return;
+      }
+      var session = SessionTracking.CurrentSession;
+      if (session != null)
+      {
+        var elapsed = System.DateTime.Now.Subtract(session.StartedAt);
+        if (elapsed.TotalSeconds > AutoCaptureSessionThresholdSeconds) {
           SessionTracking.StartSession();
         }
       }
       else
       {
-        Stopwatch.Stop();
+        SessionTracking.StartSession();
       }
     }
   }
