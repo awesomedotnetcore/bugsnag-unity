@@ -70,7 +70,11 @@ namespace BugsnagUnity
       TimingTrackerObject.AddComponent<TimingTrackerBehaviour>();
       // Run initial session check in next frame to allow potential configuration
       // changes to be completed first.
-      MainThreadDispatchBehaviour.Instance().Enqueue(RunInitialSessionCheck());
+      var asyncHandler = MainThreadDispatchBehaviour.Instance();
+      if (asyncHandler != null)
+      {
+        asyncHandler.Enqueue(RunInitialSessionCheck());
+      }
     }
 
     public void Send(IPayload payload)

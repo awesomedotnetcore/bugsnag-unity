@@ -80,10 +80,6 @@ namespace BugsnagUnity
 
     public static MainThreadDispatchBehaviour Instance()
     {
-      if (!Exists())
-      {
-        throw new Exception("MainThreadDispatchBehaviour could not find the MainThreadDispatchBehaviour object. Please ensure you have added the MainThreadExecutor Prefab to your scene.");
-      }
       return _instance;
     }
 
